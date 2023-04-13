@@ -1,5 +1,5 @@
 # flow-counting
-A rerference implementation of the flow-counting algorithm for a hybrid pixel detector.
+A reference implementation of the flow-counting algorithm for a hybrid pixel detector.
 
 ## Implementation Detail
 
@@ -11,7 +11,7 @@ If you want to deploy this algorithm in a real-time toolchain, you only have to 
 
 ## Usage
 
-Build it like any other Rust programm with cargo and provide a sutable hdf5 file. The software looks for the keys:
+Build it like any other Rust program with cargo and provide a suitable hdf5 file. The software looks for the keys:
 
 key | description
 ----|------------
