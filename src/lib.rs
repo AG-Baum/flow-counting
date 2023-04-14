@@ -61,16 +61,6 @@ pub fn write_hdf5(path: &str, clusters: &[Clust]) {
  */
 pub fn load_hdf5(path: &str) -> Result<Vec<Event>, Box<dyn std::error::Error>> {
     let file: File = File::open(path)?;
-    /*
-    let datasets = file.datasets()?;
-    for dat in datasets {
-        println!(
-            "Name: {} Dim:{} Type:{}",
-            dat.name(),
-            dat.ndim(),
-            dat.dtype()?.to_descriptor()?
-        )
-    }*/
     let ds = file.dataset("/x")?; // open the datasets
     let data_x = ds.read_1d::<u16>()?;
 
@@ -87,15 +77,6 @@ pub fn load_hdf5(path: &str) -> Result<Vec<Event>, Box<dyn std::error::Error>> {
         min(data_x.len(), data_y.len()),
         min(data_toa.len(), data_tot.len()),
     );
-    /*
-    println!(
-        "{} = {} = {} = {} = {}",
-        num_events,
-        data_x.len(),
-        data_y.len(),
-        data_toa.len(),
-        data_tot.len()
-    );*/
     let mut out_vec = Vec::<Event>::with_capacity(num_events);
 
     for index in 0..num_events {
@@ -115,7 +96,7 @@ pub fn load_hdf5(path: &str) -> Result<Vec<Event>, Box<dyn std::error::Error>> {
     return Ok(out_vec);
 }
 /*
- * Calculates abs(x-y) of unsigned intager variables
+ * Calculates abs(x-y) of unsigned integer variables
  *
 */
 #[inline]
