@@ -10,7 +10,7 @@ struct Args {
     #[arg(
         short,
         long,
-        default_value_t = ("./Measurement_Mar_16_2023_13h01m57s.hdf5").to_string()
+        default_value_t = ("./example_measurement.hdf5").to_string()
     )]
     file: String,
 
