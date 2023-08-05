@@ -1,5 +1,8 @@
 # flow-counting
+
 A reference implementation of the flow-counting algorithm for a hybrid pixel detector.
+
+![build](https://github.com/m31k0r/flow-counting/actions/workflows/rust.yml/badge.svg)
 
 ## Implementation Detail
 
