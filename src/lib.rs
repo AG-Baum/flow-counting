@@ -36,21 +36,21 @@ pub fn write_hdf5(path: &str, clusters: &[Clust]) {
         data_sum.push(clust.sum);
     }
     let file = File::create(path).unwrap(); // open for writing
-    let group = file.create_group("dir").unwrap(); // create a group
-    let builder = group.new_dataset_builder();
+    // let group = file.create_group("dir").unwrap(); // create a group
+    let builder = file.new_dataset_builder();
     builder.with_data(&data_x).create("x").unwrap();
-    let builder = group.new_dataset_builder();
+    let builder = file.new_dataset_builder();
     builder.with_data(&data_y).create("y").unwrap();
-    let builder = group.new_dataset_builder();
+    let builder = file.new_dataset_builder();
     builder.with_data(&data_size).create("size").unwrap();
-    let builder = group.new_dataset_builder();
+    let builder = file.new_dataset_builder();
     builder.with_data(&data_time).create("time").unwrap();
-    let builder = group.new_dataset_builder();
+    let builder = file.new_dataset_builder();
     builder
         .with_data(&data_intens)
         .create("max_intens")
         .unwrap();
-    let builder = group.new_dataset_builder();
+    let builder = file.new_dataset_builder();
     builder.with_data(&data_sum).create("sum_intens").unwrap();
 
     file.flush().unwrap();

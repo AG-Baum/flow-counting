@@ -29,6 +29,10 @@ struct Args {
     /// Length of the Buffer
     #[arg(short, long, default_value_t = 0)]
     cutoff: usize,
+
+    /// Output file
+    #[arg(short, long, default_value_t = ("./clusters.hdf5").to_string())]
+    out_file: String,
 }
 
 fn main() -> std::io::Result<()> {
@@ -42,12 +46,13 @@ fn main() -> std::io::Result<()> {
     if args.cutoff == 0 {
         let clusters = clust_analysis(&hits, args.eps_pixel, args.eps_time);
         println!("Found {} clusters", clusters.len());
-        write_hdf5("clusters.hdf5", &clusters);
+        write_hdf5(&args.out_file, &clusters);
     } else {
         let clusters = clust_analysis_cutoff(&hits, args.eps_pixel, args.eps_time, args.cutoff);
         println!("Found {} clusters", clusters.len());
-        write_hdf5("clusters.hdf5", &clusters);
+        write_hdf5(&args.out_file, &clusters);
     }
+    println!("Result written to: {}", args.out_file);
     return Ok(());
 }
 
