@@ -10,6 +10,11 @@ pub struct Event {
     intens: u16,
 }
 
+pub struct Trigger{
+    time: i64,
+    type_: u8,
+}
+
 pub struct Clust {
     x: u16,
     y: u16,
@@ -19,7 +24,7 @@ pub struct Clust {
     intens: u16,
 }
 
-pub fn write_hdf5(path: &str, clusters: &[Clust]) {
+pub fn write_hdf5(path: &str, clusters: &[Clust], triggers: &[Trigger]) {
     let num_events = clusters.len();
     let mut data_x = Vec::<u16>::with_capacity(num_events);
     let mut data_y = Vec::<u16>::with_capacity(num_events);
@@ -35,6 +40,16 @@ pub fn write_hdf5(path: &str, clusters: &[Clust]) {
         data_intens.push(clust.intens);
         data_sum.push(clust.sum);
     }
+
+    // Trigger arrays
+    let num_triggers = triggers.len();
+    let mut data_tdc_time = Vec::<i64>::with_capacity(num_triggers);
+    let mut data_tdc_type = Vec::<u8>::with_capacity(num_triggers);
+    for trig in triggers {
+        data_tdc_time.push(trig.time);
+        data_tdc_type.push(trig.type_);
+    }
+
     let file = File::create(path).unwrap(); // open for writing
     // let group = file.create_group("dir").unwrap(); // create a group
     let builder = file.new_dataset_builder();
@@ -53,13 +68,18 @@ pub fn write_hdf5(path: &str, clusters: &[Clust]) {
     let builder = file.new_dataset_builder();
     builder.with_data(&data_sum).create("sum_intens").unwrap();
 
+    let builder = file.new_dataset_builder();
+    builder.with_data(&data_tdc_time).create("trigger_time").unwrap();
+    let builder = file.new_dataset_builder();
+    builder.with_data(&data_tdc_type).create("trigger_type").unwrap();
+
     file.flush().unwrap();
 }
 
 /*
  * Loads Events from a hdf5 file.
  */
-pub fn load_hdf5(path: &str) -> Result<Vec<Event>, Box<dyn std::error::Error>> {
+pub fn load_hdf5(path: &str) -> Result<(Vec<Event>, Vec<Trigger>), Box<dyn std::error::Error>> {
     let file: File = File::open(path)?;
     let ds = file.dataset("/x")?; // open the datasets
     let data_x = ds.read_1d::<u16>()?;
@@ -73,11 +93,17 @@ pub fn load_hdf5(path: &str) -> Result<Vec<Event>, Box<dyn std::error::Error>> {
     let ds = file.dataset("/toa")?; // open the datasets
     let data_toa = ds.read_1d::<i64>()?;
 
+    let ds = file.dataset("/tdc_time")?; // open the datasets
+    let data_tdc_time = ds.read_1d::<i64>()?;
+
+    let ds = file.dataset("/tdc_time")?; // open the datasets
+    let data_tdc_type = ds.read_1d::<u8>()?;
+
     let num_events = min(
         min(data_x.len(), data_y.len()),
         min(data_toa.len(), data_tot.len()),
     );
-    let mut out_vec = Vec::<Event>::with_capacity(num_events);
+    let mut event_vec = Vec::<Event>::with_capacity(num_events);
 
     for index in 0..num_events {
         let x = data_x[index];
@@ -90,10 +116,23 @@ pub fn load_hdf5(path: &str) -> Result<Vec<Event>, Box<dyn std::error::Error>> {
             time: toa,
             intens: tot,
         };
-        out_vec.push(st);
+        event_vec.push(st);
     }
 
-    return Ok(out_vec);
+    let num_triggers = data_tdc_time.len();
+    let mut trig_vec = Vec::<Trigger>::with_capacity(num_triggers);
+
+    for index in 0..num_triggers {
+        let time = data_tdc_time[index];
+        let type_ = data_tdc_type[index];
+        let st = Trigger {
+            time: time,
+            type_: type_,
+        };
+        trig_vec.push(st)
+    }
+
+    return Ok((event_vec, trig_vec));
 }
 /*
  * Calculates abs(x-y) of unsigned integer variables
@@ -121,7 +160,7 @@ pub fn clust_analysis_cutoff(
         let total_len = extracted_cluster.len();
         let start_idx = total_len.saturating_sub(cut_off);
         for idx in start_idx..total_len {
-            let mut clust = &mut extracted_cluster[idx];
+            let clust = &mut extracted_cluster[idx];
             let clust_is_current = (hit.time - clust.time).abs() <= eps_time_count;
             if !clust_is_current {
                 continue;
@@ -163,7 +202,7 @@ pub fn clust_analysis(hits: &[Event], eps_space: u16, eps_time: f64) -> Vec<Clus
     let mut oldest_index = 0;
     'outer: for hit in hits {
         for idx in oldest_index..extracted_cluster.len() {
-            let mut clust = &mut extracted_cluster[idx];
+            let clust = &mut extracted_cluster[idx];
             let clust_is_current = (hit.time - clust.time).abs() <= eps_time_count;
             if !clust_is_current {
                 oldest_index = idx;

@@ -1,5 +1,5 @@
 use clap::Parser;
-use cluster_event::{clust_analysis, clust_analysis_cutoff, load_hdf5, write_hdf5, Event};
+use cluster_event::{clust_analysis, clust_analysis_cutoff, load_hdf5, write_hdf5, Event, Trigger};
 use std::fs::File;
 use std::io::Write;
 use std::time::Instant;
@@ -42,15 +42,15 @@ fn main() -> std::io::Result<()> {
         calc_sum(&args.file, args.eps_pixel, args.eps_time, args.cutoff)?;
         return Ok(());
     }
-    let hits: Vec<Event> = load_hdf5(&args.file).unwrap();
+    let (hits, triggers): (Vec<Event>, Vec<Trigger>) = load_hdf5(&args.file).unwrap();
     if args.cutoff == 0 {
         let clusters = clust_analysis(&hits, args.eps_pixel, args.eps_time);
         println!("Found {} clusters", clusters.len());
-        write_hdf5(&args.out_file, &clusters);
+        write_hdf5(&args.out_file, &clusters, &triggers);
     } else {
         let clusters = clust_analysis_cutoff(&hits, args.eps_pixel, args.eps_time, args.cutoff);
         println!("Found {} clusters", clusters.len());
-        write_hdf5(&args.out_file, &clusters);
+        write_hdf5(&args.out_file, &clusters, &triggers);
     }
     println!("Result written to: {}", args.out_file);
     return Ok(());
@@ -58,7 +58,7 @@ fn main() -> std::io::Result<()> {
 
 fn calc_sum(path: &str, eps_pixel: u16, eps_time: f64, cutoff: usize) -> std::io::Result<()> {
     println!("Run time measurment");
-    let hits: Vec<Event> = load_hdf5(path).unwrap();
+    let (hits, _triggers): (Vec<Event>, Vec<Trigger>) = load_hdf5(&path).unwrap();
     let num_average = 5;
     let mut file: File = File::create("speed.csv")?;
     write!(file, "num_hits freq[MHz] time[microsec]\n")?;
