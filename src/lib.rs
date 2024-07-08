@@ -24,7 +24,8 @@ pub struct Clust {
     intens: u16,
 }
 
-pub fn write_hdf5(path: &str, clusters: &[Clust], triggers: &[Trigger]) {
+pub fn write_hdf5(path: &str, clusters: &[Clust], triggers: &[Trigger],
+                  frames: &[u64]) {
     let num_events = clusters.len();
     let mut data_x = Vec::<u16>::with_capacity(num_events);
     let mut data_y = Vec::<u16>::with_capacity(num_events);
@@ -73,13 +74,16 @@ pub fn write_hdf5(path: &str, clusters: &[Clust], triggers: &[Trigger]) {
     let builder = file.new_dataset_builder();
     builder.with_data(&data_tdc_type).create("trigger_type").unwrap();
 
+    let builder = file.new_dataset_builder();
+    builder.with_data(&frames).create("frame_time").unwrap();
+
     file.flush().unwrap();
 }
 
 /*
  * Loads Events from a hdf5 file.
  */
-pub fn load_hdf5(path: &str) -> Result<(Vec<Event>, Vec<Trigger>), Box<dyn std::error::Error>> {
+pub fn load_hdf5(path: &str) -> Result<(Vec<Event>, Vec<Trigger>, Vec<u64>), Box<dyn std::error::Error>> {
     let file: File = File::open(path)?;
     let ds = file.dataset("/x")?; // open the datasets
     let data_x = ds.read_1d::<u16>()?;
@@ -98,6 +102,9 @@ pub fn load_hdf5(path: &str) -> Result<(Vec<Event>, Vec<Trigger>), Box<dyn std::
 
     let ds = file.dataset("/tdc_time")?; // open the datasets
     let data_tdc_type = ds.read_1d::<u8>()?;
+
+    let ds = file.dataset("/frame_time")?;
+    let data_frame_time = ds.read_1d::<u64>()?;
 
     let num_events = min(
         min(data_x.len(), data_y.len()),
@@ -119,6 +126,8 @@ pub fn load_hdf5(path: &str) -> Result<(Vec<Event>, Vec<Trigger>), Box<dyn std::
         event_vec.push(st);
     }
 
+    // Triggers
+
     let num_triggers = data_tdc_time.len();
     let mut trig_vec = Vec::<Trigger>::with_capacity(num_triggers);
 
@@ -132,7 +141,10 @@ pub fn load_hdf5(path: &str) -> Result<(Vec<Event>, Vec<Trigger>), Box<dyn std::
         trig_vec.push(st)
     }
 
-    return Ok((event_vec, trig_vec));
+    // Frames
+    let frame_vec = data_frame_time.to_vec();
+
+    return Ok((event_vec, trig_vec, frame_vec));
 }
 /*
  * Calculates abs(x-y) of unsigned integer variables
